@@ -1,16 +1,15 @@
+%define distnum %{expand:%%(/usr/lib/rpm/redhat/dist.sh --distnum)}
+%define disttype %{expand:%%(/usr/lib/rpm/redhat/dist.sh --disttype)}
+
 %define _unpackaged_files_terminate_build 0
 %define debug_package %{nil}
-%bcond_with sysvinit
-%bcond_without systemd
+%define use_systemd (0%{?fedora} && 0%{?fedora} >= 18) || (0%{?rhel} && 0%{?rhel} >= 7) || (0%{?suse_version} && 0%{?suse_version} >=1210)
+
+%define release 1.ptin.%{disttype}%{distnum}
 
 Name:		prometheus
 Version:	%{version}
-%if %{with sysvinit}
-Release:	1.sysvinit%{?dist}
-%endif
-%if %{with systemd}
-Release:	1%{?dist}
-%endif
+Release:	%{release}
 Summary:	Prometheus is a systems and service monitoring system. It collects metrics from configured targets at given intervals, evaluates rule expressions, displays the results, and can trigger alerts if some condition is observed to be true.
 Group:		System Environment/Daemons
 License:	See the LICENSE file at github.
@@ -18,10 +17,7 @@ URL:		https://github.com/prometheus/prometheus
 Source0:	https://github.com/prometheus/prometheus/releases/download/%{version}/prometheus-%{version}.linux-amd64.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-root
 Requires(pre):  /usr/sbin/useradd
-%if %{with sysvinit}
-Requires:       daemonize
-%endif
-%if %{with systemd}
+%if %{use_systemd}
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
@@ -51,11 +47,10 @@ mkdir -vp $RPM_BUILD_ROOT/etc/sysconfig
 mkdir -vp $RPM_BUILD_ROOT/usr/share/prometheus
 mkdir -vp $RPM_BUILD_ROOT/usr/share/prometheus/consoles
 mkdir -vp $RPM_BUILD_ROOT/usr/share/prometheus/console_libraries
-%if %{with sysvinit}
-mkdir -vp $RPM_BUILD_ROOT/etc/init.d
-%endif
-%if %{with systemd}
+%if %{use_systemd}
 mkdir -vp $RPM_BUILD_ROOT/usr/lib/systemd/system
+%else
+mkdir -vp $RPM_BUILD_ROOT/etc/init.d
 %endif
 
 
@@ -64,11 +59,10 @@ install -m 644 contrib/prometheus.sysconfig $RPM_BUILD_ROOT/etc/sysconfig/promet
 install -m 644 contrib/prometheus.yaml $RPM_BUILD_ROOT/etc/prometheus/prometheus.yaml
 install -m 755 prometheus $RPM_BUILD_ROOT/usr/bin/prometheus
 install -m 755 promtool $RPM_BUILD_ROOT/usr/bin/promtool
-%if %{with sysvinit}
-install -m 755 contrib/prometheus.init $RPM_BUILD_ROOT/etc/init.d/prometheus
-%endif
-%if %{with systemd}
+%if %{use_systemd}
 install -m 755 contrib/prometheus.service $RPM_BUILD_ROOT/usr/lib/systemd/system/prometheus.service
+%else
+install -m 755 contrib/prometheus.init $RPM_BUILD_ROOT/etc/init.d/prometheus
 %endif
 
 install -m 755 console_libraries/menu.lib $RPM_BUILD_ROOT/usr/share/prometheus/console_libraries
@@ -109,17 +103,16 @@ chgrp prometheus /var/run/prometheus
 chmod 774 /var/run/prometheus
 chown prometheus:prometheus /var/log/prometheus
 chmod 744 /var/log/prometheus
-%if %{with systemd}
+%if %{use_systemd}
 /usr/lib/systemd/system/prometheus.service
 %endif
 
 %files
 %defattr(-,root,root,-)
-%if %{with sysvinit}
-/etc/init.d/prometheus
-%endif
-%if %{with systemd}
+%if %{use_systemd}
 /usr/lib/systemd/system/prometheus.service
+%else
+/etc/init.d/prometheus
 %endif
 /usr/bin/prometheus
 /usr/bin/promtool

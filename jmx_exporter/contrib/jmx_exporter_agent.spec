@@ -1,9 +1,14 @@
+%define distnum %{expand:%%(/usr/lib/rpm/redhat/dist.sh --distnum)}
+%define disttype %{expand:%%(/usr/lib/rpm/redhat/dist.sh --disttype)}
+
 %define _unpackaged_files_terminate_build 0
 %define debug_package %{nil}
 
+%define release 1.ptin.%{disttype}%{distnum}
+
 Name:			jmx_exporter_agent
 Version:		%{version}
-Release:		1%{?dist}
+Release:		%{release}
 Summary:		Prometheus jmx_exporter java agent
 Group:			System Environment/Daemons
 License:		See the LICENSE file at github.

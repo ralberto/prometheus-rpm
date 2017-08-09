@@ -1,10 +1,15 @@
+%define distnum %{expand:%%(/usr/lib/rpm/redhat/dist.sh --distnum)}
+%define disttype %{expand:%%(/usr/lib/rpm/redhat/dist.sh --disttype)}
+
 %define _unpackaged_files_terminate_build 0
 %define debug_package %{nil}
 %define use_systemd (0%{?fedora} && 0%{?fedora} >= 18) || (0%{?rhel} && 0%{?rhel} >= 7) || (0%{?suse_version} && 0%{?suse_version} >=1210)
 
+%define release 1.ptin.%{disttype}%{distnum}
+
 Name:		alertmanager
 Version:	%{version}
-Release:        1%{?dist}
+Release:  %{release}
 Summary:	The Alertmanager handles alerts sent by client applications such as the Prometheus server.
 Group:		System Environment/Daemons
 License:	See the LICENSE file at github.
