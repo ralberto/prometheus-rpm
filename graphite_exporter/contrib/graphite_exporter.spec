@@ -1,16 +1,10 @@
 %define _unpackaged_files_terminate_build 0
 %define debug_package %{nil}
-%bcond_with sysvinit
-%bcond_without systemd
+%define use_systemd (0%{?fedora} && 0%{?fedora} >= 18) || (0%{?rhel} && 0%{?rhel} >= 7) || (0%{?suse_version} && 0%{?suse_version} >=1210)
 
 Name:		graphite-exporter
 Version:        %{version}
-%if %{with sysvinit}
-Release:        1.sysvinit%{?dist}
-%endif
-%if %{with systemd}
 Release:        1%{?dist}
-%endif
 Summary:	Prometheus exporter for receiving graphite metrics.
 Group:		System Environment/Daemons
 License:	See the LICENSE file at github.
@@ -18,10 +12,7 @@ URL:		https://github.com/prometheus/graphite_exporter
 Source0:        https://github.com/prometheus/graphite_exporter/releases/download/%{version}/graphite_exporter-%{version}.linux-amd64.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-root
 Requires(pre):  /usr/sbin/useradd
-%if %{with sysvinit}
-Requires:       daemonize
-%endif
-%if %{with systemd}
+%if %{use_systemd}
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
@@ -43,21 +34,19 @@ mkdir -vp $RPM_BUILD_ROOT/var/log/prometheus/
 mkdir -vp $RPM_BUILD_ROOT/var/run/prometheus
 mkdir -vp $RPM_BUILD_ROOT/var/lib/prometheus
 mkdir -vp $RPM_BUILD_ROOT/usr/bin
-%if %{with sysvinit}
+%if %{use_systemd}
+mkdir -vp $RPM_BUILD_ROOT/usr/lib/systemd/system
+%else
 mkdir -vp $RPM_BUILD_ROOT/etc/init.d
 mkdir -vp $RPM_BUILD_ROOT/etc/sysconfig
 %endif
-%if %{with systemd}
-mkdir -vp $RPM_BUILD_ROOT/usr/lib/systemd/system
-%endif
 
 install -m 755 graphite_exporter $RPM_BUILD_ROOT/usr/bin/graphite_exporter
-%if %{with sysvinit}
+%if %{use_systemd}
+install -m 755 contrib/graphite_exporter.service $RPM_BUILD_ROOT/usr/lib/systemd/system/graphite_exporter.service
+%else
 install -m 755 contrib/graphite_exporter.init $RPM_BUILD_ROOT/etc/init.d/graphite_exporter
 install -m 644 contrib/graphite_exporter.sysconfig $RPM_BUILD_ROOT/etc/sysconfig/graphite_exporter
-%endif
-%if %{with systemd}
-install -m 755 contrib/graphite_exporter.service $RPM_BUILD_ROOT/usr/lib/systemd/system/graphite_exporter.service
 %endif
 
 
@@ -81,11 +70,10 @@ chmod 744 /var/log/prometheus
 /usr/bin/graphite_exporter
 /var/run/prometheus
 /var/log/prometheus
-%if %{with sysvinit}
+%if %{use_systemd}
+/usr/lib/systemd/system/graphite_exporter.service
+%else
 /etc/init.d/graphite_exporter
 %config(noreplace) /etc/sysconfig/graphite_exporter
-%endif
-%if %{with systemd}
-/usr/lib/systemd/system/graphite_exporter.service
 %endif
 

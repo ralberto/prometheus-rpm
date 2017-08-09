@@ -17,11 +17,11 @@ DAEMON_CONFIG=/etc/${PROG}.yaml
 DAEMON_SYSCONFIG=/etc/sysconfig/${PROG}
 DAEMON=/usr/bin/${PROG}
 PID_FILE=/var/run/prometheus/${PROG}.pid
-LOCK_FILE=/var/lock/subsys/${PROG}
 LOG_FILE=/var/log/prometheus/prometheus.log
 DAEMON_USER="prometheus"
-FQDN=$(hostname --long)
 GOMAXPROCS=$(grep -c ^processor /proc/cpuinfo)
+LOCK_FILE=/var/lock/subsys/${PROG}
+FQDN=$(hostname --long)
 
 . ${DAEMON_SYSCONFIG}
 
@@ -32,9 +32,11 @@ start() {
   fi
 
   echo -n $"Starting prometheus: "
-  daemonize -u ${DAEMON_USER} -p ${PID_FILE} -l ${LOCK_FILE} -a -e ${LOG_FILE} -o ${LOG_FILE} ${DAEMON} ${ARGS}
+  daemon --user=${DAEMON_USER} --pidfile=${PID_FILE} "${DAEMON} ${ARGS} >> $LOG_FILE 2>&1 &"
   RETVAL=$?
-  echo ""
+  pidof ${DAEMON} > ${PID_FILE}
+  [ $RETVAL -eq 0 ] && touch $LOCK_FILE && success
+  echo 
   return $RETVAL
 }
 

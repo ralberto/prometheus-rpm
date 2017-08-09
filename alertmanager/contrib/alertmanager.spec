@@ -1,16 +1,10 @@
 %define _unpackaged_files_terminate_build 0
 %define debug_package %{nil}
-%bcond_with sysvinit
-%bcond_without systemd
+%define use_systemd (0%{?fedora} && 0%{?fedora} >= 18) || (0%{?rhel} && 0%{?rhel} >= 7) || (0%{?suse_version} && 0%{?suse_version} >=1210)
 
 Name:		alertmanager
 Version:	%{version}
-%if %{with sysvinit}
-Release:        1.sysvinit%{?dist}
-%endif
-%if %{with systemd}
 Release:        1%{?dist}
-%endif
 Summary:	The Alertmanager handles alerts sent by client applications such as the Prometheus server.
 Group:		System Environment/Daemons
 License:	See the LICENSE file at github.
@@ -18,10 +12,8 @@ URL:		https://github.com/prometheus/alertmanager
 Source0:	https://github.com/prometheus/alertmanager/releases/download/%{version}/alertmanager-%{version}.linux-amd64.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-root
 Requires(pre):  /usr/sbin/useradd
-%if %{with sysvinit}
-Requires:       daemonize
-%endif
-%if %{with systemd}
+
+%if %{use_systemd}
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
@@ -46,15 +38,14 @@ mkdir -vp $RPM_BUILD_ROOT/var/run/prometheus
 mkdir -vp $RPM_BUILD_ROOT/var/lib/prometheus
 mkdir -vp $RPM_BUILD_ROOT/usr/bin
 mkdir -vp $RPM_BUILD_ROOT/etc/prometheus/alertmanager
-%if %{with sysvinit}
+%if  %{use_systemd}
+mkdir -vp $RPM_BUILD_ROOT/usr/lib/systemd/system
+install -m 755 contrib/alertmanager.service $RPM_BUILD_ROOT/usr/lib/systemd/system/alertmanager.service
+%else
 mkdir -vp $RPM_BUILD_ROOT/etc/init.d
 mkdir -vp $RPM_BUILD_ROOT/etc/sysconfig
 install -m 755 contrib/alertmanager.init $RPM_BUILD_ROOT/etc/init.d/alertmanager
 install -m 644 contrib/alertmanager.sysconfig $RPM_BUILD_ROOT/etc/sysconfig/alertmanager
-%endif
-%if %{with systemd}
-mkdir -vp $RPM_BUILD_ROOT/usr/lib/systemd/system
-install -m 755 contrib/alertmanager.service $RPM_BUILD_ROOT/usr/lib/systemd/system/alertmanager.service
 %endif
 install -m 644 simple.yml $RPM_BUILD_ROOT/etc/prometheus/alertmanager/alertmanager.yaml
 install -m 755 alertmanager $RPM_BUILD_ROOT/usr/bin/alertmanager
@@ -78,11 +69,9 @@ chmod 744 /var/log/prometheus
 %defattr(-,root,root,-)
 /usr/bin/alertmanager
 %config(noreplace) /etc/prometheus/alertmanager/alertmanager.yaml
-%if %{with sysvinit}
+%if %{use_systemd}
+/usr/lib/systemd/system/alertmanager.service
+%else
 /etc/init.d/alertmanager
 %config(noreplace) /etc/sysconfig/alertmanager
 %endif
-%if %{with systemd}
-/usr/lib/systemd/system/alertmanager.service
-%endif
-
